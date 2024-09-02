@@ -4,6 +4,7 @@ import org.example.userauthenticationservice_july2024.dtos.LoginRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.LogoutRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.SignupRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.UserDto;
+import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
 import org.example.userauthenticationservice_july2024.models.User;
 import org.example.userauthenticationservice_july2024.services.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +29,12 @@ public class AuthController {
              return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
          }
 
-         User user = authService.signup(signupRequestDto.getEmail(),signupRequestDto.getPassword());
-         return new ResponseEntity<>(from(user), HttpStatus.CREATED);
+         try {
+             User user = authService.signup(signupRequestDto.getEmail(), signupRequestDto.getPassword());
+             return new ResponseEntity<>(from(user), HttpStatus.CREATED);
+         }catch (UserAlreadyExistsException existsException) {
+             throw new RuntimeException(existsException.getMessage());
+         }
     }
 
     @PostMapping("/login")
