@@ -38,7 +38,8 @@ public class AuthController {
 
          try {
              User user = authService.signup(signupRequestDto.getEmail(), signupRequestDto.getPassword());
-             return new ResponseEntity<>(from(user), HttpStatus.CREATED);
+             UserDto userDto = userMapper.toDto(user);
+             return new ResponseEntity<>(userDto, HttpStatus.CREATED);
          }catch (UserAlreadyExistsException existsException) {
              throw new RuntimeException(existsException.getMessage());
          }
