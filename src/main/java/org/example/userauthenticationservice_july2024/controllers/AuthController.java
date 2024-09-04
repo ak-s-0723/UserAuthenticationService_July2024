@@ -1,15 +1,18 @@
 package org.example.userauthenticationservice_july2024.controllers;
 
+import org.antlr.v4.runtime.misc.Pair;
 import org.example.userauthenticationservice_july2024.dtos.LoginRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.LogoutRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.SignupRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.UserDto;
+import org.example.userauthenticationservice_july2024.exceptions.InvalidCredentialsException;
 import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
 import org.example.userauthenticationservice_july2024.models.User;
 import org.example.userauthenticationservice_july2024.services.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,8 +42,15 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<UserDto> login(@RequestBody LoginRequestDto loginRequestDto) {
-       User user = authService.login(loginRequestDto.getEmail(), loginRequestDto.getPassword());
-       return new ResponseEntity<>(from(user),HttpStatus.OK);
+        try {
+            Pair<User, MultiValueMap<String,String>> userWithHeaders = authService.login(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+            if(userWithHeaders.a == null) {
+                return new ResponseEntity<>(null,HttpStatus.UNAUTHORIZED);
+            }
+            return new ResponseEntity<>(from(userWithHeaders.a), userWithHeaders.b, HttpStatus.OK);
+        }catch (InvalidCredentialsException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
     }
 
     @PostMapping("/logout")
