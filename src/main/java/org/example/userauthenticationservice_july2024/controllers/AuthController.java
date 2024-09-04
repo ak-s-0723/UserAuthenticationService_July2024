@@ -7,6 +7,7 @@ import org.example.userauthenticationservice_july2024.dtos.SignupRequestDto;
 import org.example.userauthenticationservice_july2024.dtos.UserDto;
 import org.example.userauthenticationservice_july2024.exceptions.InvalidCredentialsException;
 import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
+import org.example.userauthenticationservice_july2024.mappers.UserMapper;
 import org.example.userauthenticationservice_july2024.models.User;
 import org.example.userauthenticationservice_july2024.services.IAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
     private IAuthService authService;
 
 
@@ -34,7 +38,8 @@ public class AuthController {
 
          try {
              User user = authService.signup(signupRequestDto.getEmail(), signupRequestDto.getPassword());
-             return new ResponseEntity<>(from(user), HttpStatus.CREATED);
+             UserDto userDto = userMapper.toDto(user);
+             return new ResponseEntity<>(userDto, HttpStatus.CREATED);
          }catch (UserAlreadyExistsException existsException) {
              throw new RuntimeException(existsException.getMessage());
          }
@@ -47,7 +52,8 @@ public class AuthController {
             if(userWithHeaders.a == null) {
                 return new ResponseEntity<>(null,HttpStatus.UNAUTHORIZED);
             }
-            return new ResponseEntity<>(from(userWithHeaders.a), userWithHeaders.b, HttpStatus.OK);
+            UserDto userDto = userMapper.toDto(userWithHeaders.a);
+            return new ResponseEntity<>(userDto, userWithHeaders.b, HttpStatus.OK);
         }catch (InvalidCredentialsException exception) {
             throw new RuntimeException(exception.getMessage());
         }
