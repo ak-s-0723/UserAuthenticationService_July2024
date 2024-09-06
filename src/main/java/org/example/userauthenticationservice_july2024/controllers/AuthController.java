@@ -1,10 +1,7 @@
 package org.example.userauthenticationservice_july2024.controllers;
 
 import org.antlr.v4.runtime.misc.Pair;
-import org.example.userauthenticationservice_july2024.dtos.LoginRequestDto;
-import org.example.userauthenticationservice_july2024.dtos.LogoutRequestDto;
-import org.example.userauthenticationservice_july2024.dtos.SignupRequestDto;
-import org.example.userauthenticationservice_july2024.dtos.UserDto;
+import org.example.userauthenticationservice_july2024.dtos.*;
 import org.example.userauthenticationservice_july2024.exceptions.InvalidCredentialsException;
 import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
 import org.example.userauthenticationservice_july2024.mappers.UserMapper;
@@ -63,6 +60,15 @@ public class AuthController {
     public ResponseEntity<UserDto> logout(@RequestBody LogoutRequestDto logoutRequestDto) {
        //Learners need to implement after 6 sept
         return null;
+    }
+
+    @PostMapping("/validateToken")
+    public Boolean validateToken(@RequestBody ValidateTokenDto validateTokenDto) {
+        Boolean result = authService.validateToken(validateTokenDto.getToken(), validateTokenDto.getUserId());
+        if(!result) {
+            throw new RuntimeException("Please login again");
+        }
+        return result;
     }
 
     private UserDto from(User user) {

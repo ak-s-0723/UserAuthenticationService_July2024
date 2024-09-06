@@ -12,4 +12,6 @@ public interface IAuthService {
     Pair<User, MultiValueMap<String,String>> login(String email, String password) throws InvalidCredentialsException;
 
     User logout(String email);
+
+    Boolean validateToken(String token,Long userId);
 }

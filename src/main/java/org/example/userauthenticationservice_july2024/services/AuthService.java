@@ -1,12 +1,17 @@
 package org.example.userauthenticationservice_july2024.services;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
 import org.example.userauthenticationservice_july2024.exceptions.InvalidCredentialsException;
 import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
+import org.example.userauthenticationservice_july2024.models.Role;
+import org.example.userauthenticationservice_july2024.models.Session;
 import org.example.userauthenticationservice_july2024.models.State;
 import org.example.userauthenticationservice_july2024.models.User;
+import org.example.userauthenticationservice_july2024.repos.SessionRepo;
 import org.example.userauthenticationservice_july2024.repos.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +23,7 @@ import org.springframework.util.MultiValueMap;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,6 +36,12 @@ public class AuthService implements IAuthService {
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Autowired
+    private SessionRepo sessionRepo;
+
+    @Autowired
+    private SecretKey secretKey;
 
     @Override
     public User signup(String email, String password) throws UserAlreadyExistsException {
@@ -78,8 +90,8 @@ public class AuthService implements IAuthService {
             claims.put("iss","anuragkhanna");
 
 
-            MacAlgorithm algorithm = Jwts.SIG.HS256;
-            SecretKey secretKey = algorithm.key().build();
+            //MacAlgorithm algorithm = Jwts.SIG.HS256;
+            //SecretKey secretKey = algorithm.key().build();
             String token = Jwts.builder().claims(claims).signWith(secretKey).compact();
 
             MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
@@ -87,11 +99,51 @@ public class AuthService implements IAuthService {
 
             Pair<User,MultiValueMap<String,String>> p = new Pair<>(user,headers);
 
+            Session session = new Session();
+            session.setToken(token);
+            session.setUser(user);
+            session.setState(State.ACTIVE);
+            sessionRepo.save(session);
+
             return p;
         }
 
         return null;
     }
+
+
+    public Boolean validateToken(String token,Long userId) {
+         Optional<Session> optionalSession = sessionRepo.findByTokenAndUser_Id(token,userId);
+
+         if(!optionalSession.isPresent()) {
+             return false;
+         }
+
+        JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
+        Claims claims = jwtParser.parseSignedClaims(token).getPayload();
+
+        Long expiry = (Long)claims.get("exp");
+        Long currentTimeInMillis = System.currentTimeMillis();
+
+        System.out.println(expiry);
+        System.out.println(currentTimeInMillis);
+
+        if(currentTimeInMillis > expiry) {
+            System.out.println("TOKEN EXPIRED");
+            //1. clear expired token from DB async with help of kAFKA
+            //2. YOU can also trigger login API
+            //3. Use same api in order service to validate user before getting order info.
+            return false;
+        }
+
+        //List<Role> roles = (Long)claims.get("roles");
+        //if(roles.contains())
+
+
+        return true;
+    }
+
+
 
     @Override
     public User logout(String email) {
