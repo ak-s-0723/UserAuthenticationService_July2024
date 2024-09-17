@@ -1,10 +1,14 @@
 package org.example.userauthenticationservice_july2024.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
+import org.example.userauthenticationservice_july2024.clients.KafkaProducerClient;
+import org.example.userauthenticationservice_july2024.dtos.EmailDto;
 import org.example.userauthenticationservice_july2024.exceptions.InvalidCredentialsException;
 import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
 import org.example.userauthenticationservice_july2024.models.Role;
@@ -43,6 +47,12 @@ public class AuthService implements IAuthService {
     @Autowired
     private SecretKey secretKey;
 
+    @Autowired
+    private KafkaProducerClient kafkaProducerClient;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Override
     public User signup(String email, String password) throws UserAlreadyExistsException {
         Optional<User> userOptional = userRepo.findUserByEmail(email);
@@ -56,6 +66,23 @@ public class AuthService implements IAuthService {
         user.setPassword(bCryptPasswordEncoder.encode(password));
         user.setState(State.ACTIVE);
         userRepo.save(user);
+
+        //Send message into kafka for welcome email
+        try {
+            EmailDto emailDto = new EmailDto();
+            emailDto.setTo(email);
+            emailDto.setSubject("Welcome to Scaler");
+            emailDto.setBody("Have a pleasant learning experience.");
+            emailDto.setFrom("anuragbatch@gmail.com");
+
+            kafkaProducerClient.sendMessage("user_signedin", objectMapper.writeValueAsString(emailDto));
+        }catch (JsonProcessingException exception) {
+            throw new RuntimeException(exception.getMessage());
+        }
+
+
+
+
         return user;
     }
 
