@@ -1,10 +1,14 @@
 package org.example.userauthenticationservice_july2024.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
+import org.example.userauthenticationservice_july2024.clients.KafkaClient;
+import org.example.userauthenticationservice_july2024.dtos.EmailDto;
 import org.example.userauthenticationservice_july2024.exceptions.InvalidCredentialsException;
 import org.example.userauthenticationservice_july2024.exceptions.UserAlreadyExistsException;
 import org.example.userauthenticationservice_july2024.models.Role;
@@ -43,6 +47,14 @@ public class AuthService implements IAuthService {
     @Autowired
     private SecretKey secretKey;
 
+
+    @Autowired
+    private KafkaClient kafkaClient;
+
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Override
     public User signup(String email, String password) throws UserAlreadyExistsException {
         Optional<User> userOptional = userRepo.findUserByEmail(email);
@@ -56,6 +68,22 @@ public class AuthService implements IAuthService {
         user.setPassword(bCryptPasswordEncoder.encode(password));
         user.setState(State.ACTIVE);
         userRepo.save(user);
+
+        //using kafka
+
+        try {
+            String topic = "signup";
+            EmailDto emailDto = new EmailDto();
+            emailDto.setFrom("anuragbatch@gmail.com");
+            emailDto.setTo(email);
+            emailDto.setSubject("WELCOME TO SCALER ||");
+            emailDto.setBody("Wish you have pleasant learning experience with Anurag");
+            String message = objectMapper.writeValueAsString(emailDto);
+            kafkaClient.sendMessage(topic,message);
+
+        }catch (JsonProcessingException exception) {
+              throw new RuntimeException(exception.getMessage());
+        }
         return user;
     }
 
