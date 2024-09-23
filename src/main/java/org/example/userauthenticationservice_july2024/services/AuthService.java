@@ -72,12 +72,12 @@ public class AuthService implements IAuthService {
         //using kafka
 
         try {
-            String topic = "signup";
+            String topic = "user_signedin";
             EmailDto emailDto = new EmailDto();
             emailDto.setFrom("anuragbatch@gmail.com");
             emailDto.setTo(email);
-            emailDto.setSubject("WELCOME TO SCALER ||");
-            emailDto.setBody("Wish you have pleasant learning experience with Anurag");
+            emailDto.setSubject("Welcome to Scaler");
+            emailDto.setBody("Have a pleasant learning experience.");
             String message = objectMapper.writeValueAsString(emailDto);
             kafkaClient.sendMessage(topic,message);
 
